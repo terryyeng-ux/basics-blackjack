@@ -84,9 +84,6 @@ console.log(deck);
 // max sum = 21
 var totalSumLimit = 21;
 
-// dealer has to hit unless 17 and above
-var dealerHit = 16;
-
 var playerHand = [];
 var computerHand = [];
 
@@ -96,6 +93,7 @@ var dealCards = function (hand) {
 
 var GAME_MODE_FIRST_CARDS = "GAME_MODE_FIRST_CARDS";
 var GAME_MODE_HIT_STAND = "GAME_MODE_HIT_STAND";
+var GAME_MODE_WINNER = "GAME_MODE_WINNER";
 
 var gameMode = GAME_MODE_FIRST_CARDS;
 
@@ -112,27 +110,65 @@ var checkBlackjack = function (playerHand, computerHand) {
   if (computerHand[0].rank > 9 && computerHand[1].rank == 1) {
     return "computer wins";
   } else {
-    return "Continue Game";
+    return "continue game";
   }
 };
 
-var checkWinner = function (playerHand, computerHand) {
-  var sumOfPlayerCards = playerHand["rank"].reduce(function (a, b) {
-    return a + b;
-  }, 0);
-  var sumofComputerCards = computerHand["rank"].reduce(function (a, b) {
-    return a + b;
-  });
-  if (sumOfPlayerCards > sumofComputerCards && sumOfPlayerCards < 22) {
-    return "Player wins!";
-  } else {
-    return "Computer wins!";
+var generateSumOfPlayerHand = function (playerHand) {
+  // extract rank into new array and push it in.
+  var counter = 0;
+  var sumOfPlayerCards = 0;
+  while (counter < playerHand.length) {
+    if (playerHand[counter].rank > 10) {
+      playerHand[counter].rank = 10;
+    }
+    sumOfPlayerCards = sumOfPlayerCards + playerHand[counter].rank;
+    counter++;
+  }
+  return sumOfPlayerCards;
+};
+
+var generateSumOfComputerHand = function (computerHand) {
+  // extract rank into new array and push it in.
+  var counter = 0;
+  var sumOfComputerCards = 0;
+  while (counter < computerHand.length) {
+    if (computerHand[counter].rank > 10) {
+      computerHand[counter].rank = 10;
+    }
+    sumOfComputerCards = sumOfComputerCards + computerHand[counter].rank;
+    counter++;
+  }
+  return sumOfComputerCards;
+};
+
+var checkDealerHands = function (computerHand) {
+  var currentSum = generateSumOfComputerHand(computerHand);
+  while (currentSum < 17) {
+    dealCards(computerHand);
+    console.log(computerHand);
+    currentSum = generateSumOfComputerHand(computerHand);
+    console.log(currentSum);
+  }
+  return currentSum;
+};
+
+var checkWinner = function (sumOfPlayerCards, sumOfComputerCards) {
+  generateSumOfComputerHand(computerHand);
+  generateSumOfPlayerHand(playerHand);
+  if (sumOfPlayerCards > sumOfComputerCards && sumOfPlayerCards <= 21) {
+    return "player win";
+  }
+  if (sumOfComputerCards > sumOfPlayerCards && sumOfComputerCards <= 21) {
+    return "computer win";
+  }
+  if (sumOfComputerCards == sumOfPlayerCards) {
+    return "draw";
   }
 };
 
 var main = function (input) {
   var myOutputValue;
-
   // user clicks submit to deal cards
   if (gameMode == GAME_MODE_FIRST_CARDS) {
     dealCards(playerHand);
@@ -149,7 +185,7 @@ var main = function (input) {
     if (checkHand == "computer wins") {
       return "Computer wins!";
     }
-    if (checkHand == "Continue Game") {
+    if (checkHand == "continue game") {
       // if no one got blackjack, change to hit stand for player to choose
       gameMode = GAME_MODE_HIT_STAND;
     }
@@ -172,28 +208,37 @@ var main = function (input) {
     // user decides whether to hit or stand, using the submit button to submit their choices
     if (input == "hit") {
       dealCards(playerHand);
-      console.log(playerHand);
-      myOutputValue =
-        "You have drawn " +
-        playerHand[0].name +
-        " of " +
-        playerHand[0].suit +
-        " for your 1st card and " +
-        playerHand[1].name +
-        " of " +
-        playerHand[1].suit +
-        " for your 2nd card! And " +
-        playerHand[2].name +
-        " of " +
-        playerHand[2].suit +
-        " for your 3rd card";
+      if (generateSumOfPlayerHand(playerHand) < 21) {
+        myOutputValue =
+          "Your current sum of cards is " +
+          generateSumOfPlayerHand(playerHand) +
+          "! Type hit if you would like more cards! If not type stand!";
+      } else {
+        gameMode = GAME_MODE_WINNER;
+        myOutputValue =
+          "Your current sum of cards is " +
+          generateSumOfPlayerHand(playerHand) +
+          "! You bust!";
+      }
     } else if (input == "stand") {
-      console.log(playerHand);
-      console.log(computerHand);
-      checkWinner(playerHand, computerHand);
-      console.log(checkWinner);
-      // call in function to check who is the winner, dealer or player
+      gameMode = GAME_MODE_WINNER;
     }
+  }
+
+  if (gameMode == GAME_MODE_WINNER) {
+    checkDealerHands(computerHand);
+    var winner = checkWinner(
+      generateSumOfPlayerHand(playerHand),
+      generateSumOfComputerHand(computerHand)
+    );
+    if (winner == "player win") {
+      myOutputValue = "Player wins!";
+    } else if (winner == "computer win") {
+      myOutputValue = "Computer wins!";
+    } else if (winner == "draw") {
+      myOutputValue = "Draw!";
+    }
+    return myOutputValue;
   }
 
   return myOutputValue;
